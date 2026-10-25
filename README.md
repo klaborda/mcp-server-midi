@@ -13,8 +13,8 @@ A FastMCP Server which allows an LLM to send MIDI sequences into any software th
 ## Requirements
 
 - Python 3.7+
-- rtmidi
-- fastmcp
+- rtmidi (built with both ALSA seq and JACK support on Linux)
+- fastmcp 4.x (the pinned `requirements.txt` targets fastmcp 2.x, whose `pydantic_core` has no Python 3.14 wheels and whose API differs from 4.x — see "Notes" below)
 - python-dotenv
 - asyncio
 
@@ -34,10 +34,27 @@ A FastMCP Server which allows an LLM to send MIDI sequences into any software th
    pip install -r requirements.txt
    ```
 
+   On Python 3.14+ (or if the pinned `requirements.txt` fails to build), install with relaxed pins instead:
+   ```
+   pip install --upgrade python-rtmidi fastmcp python-dotenv
+   ```
+
+   On Linux, `python-rtmidi`'s JACK support requires `libjack` headers at build time (provided by `pipewire-jack` / `jack2` depending on distro). ALSA seq support requires `alsa-lib` headers.
+
 3. Create a `.env` file with your configuration:
    ```
    PORT=8123
+   MIDI_API=jack   # or "alsa" — see "MIDI API" below
    ```
+
+## MIDI API
+
+On Linux the server can create its virtual port via either the **JACK** API or the **ALSA sequencer** API. Set `MIDI_API` in `.env` (or the environment) to choose:
+
+- `MIDI_API=jack` (default) — opens a JACK MIDI port. Use this if your DAW is a JACK client (e.g. REAPER running under PipeWire-JACK, Bitwig, Ardour with JACK). The port appears in the JACK/PipeWire graph as `RtMidiOut Client:MCP MIDI Out`.
+- `MIDI_API=alsa` — opens an ALSA sequencer port. Use this if your DAW reads ALSA seq directly (e.g. REAPER configured for ALSA MIDI, or non-JACK Linux audio setups). The port appears in `/proc/asound/seq/clients` as `MCP MIDI Out` (client `RtMidiOut Client`).
+
+If `MIDI_API=jack` is requested but the JACK server is unavailable, the server falls back to ALSA seq automatically.
 
 ## Usage
 
@@ -49,11 +66,15 @@ python mcp_midi_server.py
 
 The server creates a virtual MIDI port named "MCP MIDI Out" that can be used as a MIDI input device in other applications. This means you can:
 
-- Connect digital audio workstations (DAWs) like Ableton Live, Logic Pro, or FL Studio to receive MIDI from this server
+- Connect digital audio workstations (DAWs) like Ableton Live, Logic Pro, FL Studio, REAPER, or Bitwig to receive MIDI from this server
 - Use the server to control hardware synthesizers through your computer's MIDI interface
 - Connect to any other software that accepts MIDI input (virtual instruments, lighting controllers, etc.)
 
 Simply select "MCP MIDI Out" as a MIDI input device in your preferred MIDI-compatible application.
+
+## Notes for fastmcp 4.x
+
+The upstream `mcp_midi_server.py` was written for fastmcp 2.x, which used a `settings={"port": ...}` kwarg on `FastMCP()`. fastmcp 4.x removed that kwarg; this fork passes the port to `mcp.run(transport='sse', port=...)` instead. If you reinstall against the pinned `requirements.txt` (fastmcp 2.1.2), revert this change or pin fastmcp to a 4.x release.
 
 ## MCP Config
 

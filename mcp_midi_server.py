@@ -7,7 +7,22 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- MIDI Setup ---
-midiout = rtmidi.MidiOut()
+# rtmidi API selection. Default to JACK on Linux so the virtual port shows up
+# in JACK-based DAWs (e.g. REAPER running as a PipeWire-JACK client). Fall back
+# to ALSA seq if the JACK server is unavailable, or if MIDI_API=alsa is set.
+# Set MIDI_API=jack (default) or MIDI_API=alsa in .env to override.
+midi_api_name = os.getenv("MIDI_API", "jack").lower()
+if midi_api_name == "jack":
+    try:
+        midiout = rtmidi.MidiOut(rtmidi.API_UNIX_JACK)
+        print("Using JACK MIDI API")
+    except Exception as e:
+        print(f"JACK API unavailable ({e}), falling back to ALSA seq")
+        midiout = rtmidi.MidiOut(rtmidi.API_LINUX_ALSA)
+else:
+    midiout = rtmidi.MidiOut(rtmidi.API_LINUX_ALSA)
+    print("Using ALSA seq MIDI API")
+
 available_ports = midiout.get_ports()
 
 # Create a virtual MIDI port
@@ -21,12 +36,10 @@ except rtmidi.RtMidiError as e:
     exit()
 
 # --- MCP Server Setup ---
+# fastmcp 4.x removed the settings= kwarg; port is passed to mcp.run() below.
 mcp = FastMCP(
     name="MCP MIDI Server",
     instructions="Sends MIDI commands received via MCP.",
-    settings={
-        "port": os.getenv("PORT")
-    }
 )
 
 # --- MCP Methods ---
@@ -255,7 +268,8 @@ if __name__ == "__main__":
     import atexit
     atexit.register(midiout.close_port)
 
-    mcp.run(transport='sse')
+    port = os.getenv("PORT", "8123")
+    mcp.run(transport='sse', port=int(port))
     # This part might not be reached if server.run() blocks indefinitely
     # Consider running the server in a separate thread if needed
     # Cleanup is handled by atexit
