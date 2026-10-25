@@ -1,32 +1,24 @@
-annotated-types==0.7.0
-anyio==4.9.0
-certifi==2025.1.31
-click==8.1.8
-dotenv==0.9.9
-fastapi==0.115.12
-fastmcp==2.1.2
-h11==0.14.0
-httpcore==1.0.8
-httpx==0.28.1
-httpx-sse==0.4.0
-idna==3.10
-markdown-it-py==3.0.0
-mcp==1.6.0
-mdurl==0.1.2
-openapi-pydantic==0.5.1
-pydantic==2.11.3
-pydantic-settings==2.8.1
-pydantic_core==2.33.1
-Pygments==2.19.1
-python-dotenv==1.1.0
-python-rtmidi==1.5.8
-rich==14.0.0
-shellingham==1.5.4
-sniffio==1.3.1
-sse-starlette==2.2.1
-starlette==0.46.2
-typer==0.15.2
-typing-inspection==0.4.0
-typing_extensions==4.13.2
-uvicorn==0.34.1
-websockets==15.0.1
+# MCP MIDI Server dependencies.
+#
+# This requirements.txt targets fastmcp 4.x. The upstream repo pinned fastmcp
+# 2.1.2 / pydantic_core 2.33.1, which has no Python 3.14 wheels and whose API
+# differs (the FastMCP() settings= kwarg was removed in 4.x). mcp_midi_server.py
+# in this fork requires fastmcp 4.x.
+#
+# Minimum-version pins (using >=) rather than exact pins: lets pip pull
+# compatible-with-py3.14 wheels for transitive deps. Verified working with
+# the versions below on Garuda Linux (Arch, Python 3.14.8).
+
+# Direct dependencies
+python-rtmidi>=1.5.8
+fastmcp>=4.1.3
+python-dotenv>=1.2.4
+
+# fastmcp 4.x runtime (transitive, but pinned for reproducibility)
+mcp>=2.3.0
+pydantic>=2.14.1
+pydantic-settings>=2.16.1
+starlette>=1.10.0
+uvicorn>=0.54.0
+sse-starlette>=3.5.1
+anyio>=4.15.1
