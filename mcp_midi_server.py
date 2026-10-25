@@ -7,11 +7,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- MIDI Setup ---
-# rtmidi API selection. Default to JACK on Linux so the virtual port shows up
-# in JACK-based DAWs (e.g. REAPER running as a PipeWire-JACK client). Fall back
-# to ALSA seq if the JACK server is unavailable, or if MIDI_API=alsa is set.
-# Set MIDI_API=jack (default) or MIDI_API=alsa in .env to override.
-midi_api_name = os.getenv("MIDI_API", "jack").lower()
+# rtmidi API selection. Default to ALSA seq on Linux so the virtual port can
+# be bridged into JACK MIDI by a2jmidid (which exposes ALSA seq ports as JACK
+# MIDI ports that JACK-based DAWs like REAPER can see). Override with
+# MIDI_API=jack in .env if you want a native JACK port instead (note: REAPER
+# under PipeWire-JACK filters out non-physical JACK MIDI ports, so the ALSA
+# + a2jmidid path is the one that actually shows up in REAPER).
+midi_api_name = os.getenv("MIDI_API", "alsa").lower()
 if midi_api_name == "jack":
     try:
         midiout = rtmidi.MidiOut(rtmidi.API_UNIX_JACK)
